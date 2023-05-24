@@ -1,2 +1,121 @@
 #pragma version 8
+txn ApplicationID
+pushint 0
+==
+
+pushbytes "ADMIN"
+txn Sender
+app_global_put
+
+bz main_0
+
 int 1
+return
+
+
+main_0:
+pushint 1 //Opt in
+txn OnCompletion
+==
+txn NumAppArgs
+int 0
+==
+&&
+bz main_1
+int 1
+return
+
+
+main_1:
+pushbytes "setup"
+txna ApplicationArgs 0
+==
+bnz setup
+
+pushbytes "addMonster"
+txna ApplicationArgs 0
+==
+bnz addMonster
+
+pushbytes "enterPlayer"
+txna ApplicationArgs 0
+==
+bnz enterPlayer
+
+pushbytes "playerMove"
+txna ApplicationArgs 0
+==
+bnz playerMove
+
+pushbytes "exitAndSavePlayer"
+txna ApplicationArgs 0
+==
+bnz exitAndSavePlayer
+
+pushbytes "pvpSteal"
+txna ApplicationArgs 0
+==
+bnz pvpSteal
+
+pushbytes "playerKillMonster"
+txna ApplicationArgs 0
+==
+bnz playerKillMonster
+
+err
+
+
+setup:
+txn Sender
+pushbytes "ADMIN"
+app_global_get
+==
+assert
+
+pushbytes "MONSTERS"
+pushint 4096
+box_create
+
+int 1
+return
+
+
+
+
+addMonster:
+//append monster to monsters box
+
+// ApplicationArgs 1 is X
+// ApplicationArgs 2 is Y
+// ApplicationArgs 3 is ASA_id
+
+
+
+enterPlayer:
+//add player to the game
+
+
+
+exitAndSavePlayer:
+//save the player's state before quitting
+
+
+
+playerMove:
+//allow the player to move through the map
+
+
+
+playerKillMonster:
+//allow player to kill monsters, erasing them from the array
+    //and rewarding the player with an NFT
+
+
+
+pvpSteal:
+//allow player to steal from another player holding an unsecured asset
+
+
+
+secureAsset:
+//allow player to secure an asset being held, iff they are inside the safe zone
