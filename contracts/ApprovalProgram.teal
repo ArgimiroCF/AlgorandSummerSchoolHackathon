@@ -92,7 +92,97 @@ addMonster:
 
 
 enterPlayer:
-//add player to the game
+//if player is not opted in, don't let them enter the game
+txn Sender
+global CurrentApplicationID
+app_opted_in
+assert
+
+//check if player is starting a new game or returning
+txn Sender
+box_get
+bnz boxExists
+
+//player does not exist!
+pop //pop empty byte array
+
+newGame:
+
+txn Sender
+int 32
+box_create
+
+txn Sender
+pushbytes "POS_X"
+int 0
+app_local_put
+
+txn Sender
+pushbytes "POS_Y"
+int 0
+app_local_put
+
+txn Sender
+pushbytes "SCORE"
+int 1
+app_local_put
+
+txn Sender
+pushbytes "UNSECURED_ASSET"
+int 0
+app_local_put
+
+b end
+
+boxExists:   //[boxData(address, lat, long, score, unsecured_asset)]
+//retrieve score and unsecured asset, and set them to 0
+
+reinstate:
+dup
+int 0
+extract_uint64
+txn Sender
+pushbytes "POS_X"
+dig 2
+app_local_put
+pop
+
+dup
+int 8
+extract_uint64
+txn Sender
+pushbytes "POS_Y"
+dig 2
+app_local_put
+pop
+
+dup                      //[...boxData, boxData]
+int 16                   //[...boxData, boxData, 74]
+extract_uint64           //[...boxData, score]
+txn Sender               //[...boxData, score, senderAddr]
+pushbytes "SCORE"        //[...boxData, score, senderAddr, "SCORE"]
+dig 2                    //[...boxData, score, senderAddr, "SCORE", score]
+app_local_put            //[...boxData, score]
+pop                      //[boxData]
+
+dup                      //[boxData, boxData]
+int 24                   //[...boxData, boxData, 82]
+extract_uint64           //[...boxData, unsecured_asset]
+txn Sender               //[...boxData, unsecured_asset, senderAddr]
+pushbytes "UNSECURED_ASSET" //[...boxData, unsecured_asset, senderAddr, "UNSECURED_ASSET"]
+dig 2                    //[...boxData, unsecured_asset, senderAddr, "UNSECURED_ASSET", unsecured_asset]
+app_local_put            //[...boxData, unsecured_asset]
+pop                      //[...boxData]
+
+//clear save box
+txn Sender
+pushbytes 0x0000000000000000000000000000000000000000000000000000000000000000
+box_put
+
+end:
+int 1
+return
+
 
 
 
@@ -119,3 +209,86 @@ pvpSteal:
 
 secureAsset:
 //allow player to secure an asset being held, iff they are inside the safe zone
+
+
+
+
+//Subroutines:
+//find monster by ASA index (reject program if not found)
+findMonsterIndex:        //[monsterASAId]
+int 8
+store 1
+
+//store monster array length in scratch space 2
+callsub getMonsterLen
+int 24
+*
+int 8
++
+store 2
+
+monsterSearchLoop:
+dup                     //[monsterASAId, monsterASAId]
+load 1                  //[monsterASAId, monsterASAId, i]
+int 16                  
++                       //[monsterASAId, monsterASAId, i+16]
+
+byte "MONSTERS"         //[monsterASAId, monsterASAId, i+16, b"MONSTERS"]
+swap                    //[monsterASAId, monsterASAId, b"MONSTERS", i+16]
+int 8                   //[monsterASAId, monsterASAId, b"MONSTERS", i+16, 8]
+box_extract             //[monsterASAId, monsterASAId, boxASAId]
+btoi                    //[monsterASAId, monsterASAId, boxASAId]
+==
+bnz found
+
+load 1                     //[monsterASAId, i]
+int 24
++                       //[monsterASAId, i=i+24]
+store 1                 //[monsterASAId]
+
+load 1
+load 2                  //[monsterASAId, i, len]
+<
+assert
+
+b monsterSearchLoop 
+
+found:
+pop
+load 1
+retsub
+
+
+//check if distance between point a and point b is <= r (argument passed is r**2)
+checkDistInRange:           //[a_x, a_y, b_x, b_y, r**2] 
+dig 1                       //[a_x, a_y, b_x, b_y, r**2, b_y]
+dup                         //[a_x, a_y, b_x, b_y, r**2, b_y, b_y]
+*                           //[a_x, a_y, b_x, b_y, r**2, b_y^2]
+dig 3
+dup
+*                           //[a_x, a_y, b_x, b_y, r**2, b_y^2, b_x^2]
++                           //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2]
+dig 4                       //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2, a_y]
+dup                         //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2, a_y, a_y]
+*                           //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2, a_y^2]
++                           //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2 + a_y^2]
+dig 5                       //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2 + a_y^2, a_x]
+dup                         //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2 + a_y^2, a_x, a_x]
+*                           //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2 + a_y^2, a_x^2]
++                           //[a_x, a_y, b_x, b_y, r**2, b_y^2 + b_x^2 + a_y^2 + a_x^2]
+swap                        //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2]
+dig 2                       //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2, b_y]
+dig 5                       //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2, b_y, a_y]
+*
+int 2
+*                           //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2, 2*b_y*a_y]
++                           //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2 + 2*b_y*a_y]                 
+dig 3                       //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2 + 2*b_y*a_y, b_x]                 
+dig 6                       //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2 + 2*b_y*a_y, b_x, a_x]
+*
+int 2
+*
++                           //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2, r**2 + 2*b_y*a_y + 2*b_x*a_x]
+<=                          //[a_x, a_y, b_x, b_y, b_y^2 + b_x^2 + a_y^2 + a_x^2 <= r**2 + 2*b_y*a_y + 2*b_x*a_x]
+
+retsub
