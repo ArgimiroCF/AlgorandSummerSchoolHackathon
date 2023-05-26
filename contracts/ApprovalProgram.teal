@@ -214,6 +214,16 @@ secureAsset:
 
 
 //Subroutines:
+//get monster array length (that is, amount of active monsters)
+getMonsterLen:
+pushbytes "MONSTERS"
+int 0
+int 8
+box_extract
+btoi
+retsub
+
+
 //find monster by ASA index (reject program if not found)
 findMonsterIndex:        //[monsterASAId]
 int 8
