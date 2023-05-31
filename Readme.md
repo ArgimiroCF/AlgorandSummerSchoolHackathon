@@ -47,7 +47,7 @@ In order to build the requested system, you have to implement the following func
 
 -setup("setup"), should only allow calls where the sender is equal to the value set as "ADMIN". Then, it should create a box called "MONSTERS" with 4096 bytes of space.
 
--addMonster("addMonster", uint64 pos_x, uint64 pos_y, uint64 ASA_ID), adds a monster to the game. Positions are represented by an arbitrary tuple of unsigned 64 bit integers. The function should append the monster at the end of the occupied length of the MONSTER box. Consider that the first integer of the MONSTER box should be used for keeping track of the amount of live monsters in play, incrementing by one after a succesful call to this function. Lastly, the function should use an inner transaction to mint a unique NFT, for which the contract is a manager, clawback and freeze address.
+-addMonster("addMonster", uint64 pos_x, uint64 pos_y), adds a monster to the game. Positions are represented by an arbitrary tuple of unsigned 64 bit integers. The function should append the monster at the end of the occupied length of the MONSTER box. Consider that the first integer of the MONSTER box should be used for keeping track of the amount of live monsters in play, incrementing by one after a succesful call to this function. Lastly, the function should use an inner transaction to mint a unique NFT, for which the contract is a manager, clawback and freeze address.
 
 -enterPlayer("enterPlayer"), if its the player's first time calling this function, it will add the player to the game. This entails creating a box named as the sender's address (32 byte value given by _txn Sender_), which will hold 4 uint64 integers: player's x and y position coordinates, the unsecured asset being ocassionaly held by the player, and the player's current score.
 After a succesful entry, the player is awarded one point (which should reflect in their local state).
@@ -80,7 +80,6 @@ The contract should have global and local schema exactly as specified (or as sho
 
 
 ## Deployment and testing script
-
 You will be provided with a python script, _AppTestAndDeploy.py_, that contains:
 -code to compile and deploy a teal contract into a sandbox instance (algokit is recommended for the sandbox environment)
 -a setup to run a series of tests for all required functionality
@@ -113,6 +112,6 @@ You may submit more than once, by simply editing your submission in the sheet. K
 
 
 
-[^1]: This tragic twist of fate often prompts introspection, causing the warriors to question their chosen path as monster hunters and contemplate whether it was a good career decision to begin with.
+[^1]: This tragic twist of fate often prompts introspection, causing warriors to question their chosen path as monster hunters and to contemplate whether it was a good career choice to begin with.
 
-[^2]: The implementation as described does allow for a player to stay comfortably in the safe zone and shoot away at monsters from there. However, any adventurer that attempts this strategy would kill them out of sheer embarrasment faster than any monster could.
+[^2]: The implementation as described does allow for a player to stay comfortably in the safe zone and shoot away at monsters from there. However this strategy would kill any adventurer out of sheer embarrasment faster than any monster could.

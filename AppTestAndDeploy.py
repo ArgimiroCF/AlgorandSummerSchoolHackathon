@@ -331,8 +331,8 @@ class MonsterArenaTestCommon(unittest.TestCase):
         playerVal = {"ADDRESS": boxName,
                     "POS_X": int.from_bytes(boxContent[:8], "big"), 
                      "POS_Y": int.from_bytes(boxContent[8:16], "big"), 
-                     "SCORE": int.from_bytes(boxContent[16:24], "big"), 
-                     "UNSECURED_ASSET": int.from_bytes(boxContent[24:32], "big")}
+                     "UNSECURED_ASSET": int.from_bytes(boxContent[16:24], "big"),
+                     "SCORE": int.from_bytes(boxContent[24:32], "big")}
         return playerVal
 
 
@@ -363,9 +363,9 @@ class MonsterArenaTestCommon(unittest.TestCase):
         p = sandbox.get_algod_client().account_application_info(account.address, self.AppID)["app-local-state"]['key-value']
         for v in p:
             if (v["key"] == 'UE9TX1k='):
-                POS_X = v["value"]["uint"]
-            elif (v["key"] == 'UE9TX1g='):
                 POS_Y = v["value"]["uint"]
+            elif (v["key"] == 'UE9TX1g='):
+                POS_X = v["value"]["uint"]
             elif (v["key"] == 'VU5TRUNVUkVEX0FTU0VU'):
                 ASA = v["value"]["uint"]
             elif (v["key"] == "U0NPUkU="):
@@ -428,6 +428,16 @@ class AllTests(MonsterArenaTestCommon):
                 assert assetInfo["params"]["manager"] == AppAddress, "Manager address incorrect"
             except:
                 assert False, "Asset not minted correctly"
+
+
+    @classmethod
+    def test_SecureAssetWithoutLocalSpace(self):
+        acc = sandbox.get_accounts()[0]
+        try:
+            out = secureAsset(self.AppID, acc)
+            assert False, "player should not be able to secure asset without an asset"
+        except:
+            assert True, "player could not secure asset"
 
 
     @classmethod
@@ -516,16 +526,6 @@ class AllTests(MonsterArenaTestCommon):
     
     
     @classmethod
-    def test_SecureAssetWithoutLocalSpace(self):
-        acc = sandbox.get_accounts()[0]
-        try:
-            out = secureAsset(self.AppID, acc)
-            assert False, "player should not be able to secure asset without an asset"
-        except:
-            assert True, "player could not secure asset"
-    
-    
-    @classmethod
     def test_SecureAssetOutsideSafeZone(self):
         acc = sandbox.get_accounts()[1]
         try:
@@ -606,7 +606,7 @@ class AllTests(MonsterArenaTestCommon):
             if b["address"] == acc.address:
                 assert b["amount"] == 1, "account should hold the asset now"
             elif b["address"] == victim.address:
-                assert b["amount"] == 1, "victim should not hold the asset now"
+                assert b["amount"] == 0, "victim should not hold the asset now"
                 
                 
     @classmethod
@@ -628,12 +628,13 @@ class AllTests(MonsterArenaTestCommon):
     def test_StealFromOfflinePlayer(self):
         acc = sandbox.get_accounts()[1]
         victim = sandbox.get_accounts()[0]
+        exitAndSavePlayer(self.AppID, victim)
         
         try:
-            exitAndSavePlayer(self.AppID, victim)
             playerSteal(self.AppID, acc, victim.address)
-        except:
             assert False, "Can't steal from an offline player"
+        except:
+            assert True
 
 
 
@@ -648,4 +649,16 @@ if __name__ == "__main__":
     print("APP DEPLOYED AND FUNDED CORRECTLY WITH ID ", AppID)
     
     AllTests.AppID = AppID
-    unittest.main()
+    AllTests.test_AddMonsters()
+    AllTests.test_AddPlayers()
+    AllTests.test_MonsterASAs()
+    AllTests.test_SecureAssetWithoutLocalSpace()
+    AllTests.test_playerKillMonster()
+    AllTests.test_playerExitAndSave()
+    AllTests.test_playerRestoreSave()
+    AllTests.test_SecureAssetOutsideSafeZone()
+    AllTests.test_PlayerMove()
+    AllTests.test_SecureAsset()
+    AllTests.test_StealFromPlayer()
+    AllTests.test_StealFromFarAwayPlayer()
+    AllTests.test_StealFromOfflinePlayer()
